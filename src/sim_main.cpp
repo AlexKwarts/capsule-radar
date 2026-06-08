@@ -122,6 +122,7 @@ int main(int argc, char **argv) {
 
     setvbuf(stdout, NULL, _IOLBF, 0);  // line-buffered: logs appear even when piped to a file
     const char *shotPath = (argc >= 3 && strcmp(argv[1], "--shot") == 0) ? argv[2] : NULL;
+    const char *gifPath  = (argc >= 3 && strcmp(argv[1], "--gif")  == 0) ? argv[2] : NULL;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("[sim] SDL_Init failed: %s\n", SDL_GetError());
@@ -216,6 +217,25 @@ int main(int argc, char **argv) {
                 char path[300]; snprintf(path, sizeof(path), "%s-splash.bmp", shotPath);
                 SDL_SaveBMP(surf, path); SDL_FreeSurface(surf);
                 printf("[sim] saved %s\n", path);
+            }
+        }
+
+        // animated GIF capture (--gif <prefix>): grab frames after the splash fades
+        static Uint32 lastGif = 0;
+        static int gifFrame = 0;
+        if (gifPath && now - start > 3000 && now - lastGif >= 55) {
+            lastGif = now;
+            if (gifFrame >= 60) { run = false; }
+            else {
+                SDL_RenderClear(s_ren); SDL_RenderCopy(s_ren, s_tex, NULL, NULL);
+                int ow, oh; SDL_GetRendererOutputSize(s_ren, &ow, &oh);
+                SDL_Surface *surf = SDL_CreateRGBSurfaceWithFormat(0, ow, oh, 32, SDL_PIXELFORMAT_ARGB8888);
+                if (surf) {
+                    SDL_RenderReadPixels(s_ren, NULL, SDL_PIXELFORMAT_ARGB8888, surf->pixels, surf->pitch);
+                    char path[300]; snprintf(path, sizeof(path), "%s-%03d.bmp", gifPath, gifFrame);
+                    SDL_SaveBMP(surf, path); SDL_FreeSurface(surf);
+                }
+                gifFrame++;
             }
         }
 

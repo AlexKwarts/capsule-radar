@@ -4,15 +4,25 @@ A live **ADS-B aircraft radar** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75**
 
 > Visual reference: open [`assets/plane_radar_2.0_mockup.html`](assets/plane_radar_2.0_mockup.html) in a browser.
 
+<p align="center"><img src="docs/img/radar.gif" width="360" alt="Capsule Radar live scope"></p>
+
+| Phosphor | Dragon (Capsule Corp) | Amber CRT | Military |
+|:--:|:--:|:--:|:--:|
+| ![Phosphor](docs/img/radar.png) | ![Dragon](docs/img/dragon.png) | ![Amber](docs/img/amber.png) | ![Military](docs/img/military.png) |
+
+<sub>Captured from the bundled desktop simulator (the device screen is round; the square corners are off-panel).</sub>
+
 ## Features
 
 - **Live traffic** from [airplanes.live](https://airplanes.live) (free, non-commercial; fallback adsb.lol), updated every couple of seconds. Memory-safe streaming parser with a hard aircraft cap.
-- **Two themes** (long-press the screen to switch, remembered across reboots):
+- **Four themes** (long-press the screen to cycle, or pick on the web; remembered across reboots):
   - **Phosphor** — green-on-black radar scope: rings, animated sweep, aircraft glyphs rotated by heading and color-coded by altitude, fading trails, emergency halo.
   - **Dragon** — DBZ Dragon Radar skin: green gradient + grid, the 7 nearest aircraft as yellow "dragon balls" emitting waves, off-range traffic as edge arrows pointing its way, orange target rings.
-- **Touch** (CST9217): tap an aircraft → detail card (callsign, type, altitude, vertical speed, ground speed, distance, heading, squawk, and **origin → destination** looked up from adsbdb). Swipe between **Radar / List / Stats** (circular layouts).
+  - **Amber CRT** and **Military** — the same scope retinted (warm amber / night-vision green).
+- **Touch** (CST9217): tap an aircraft → detail card (callsign, type, altitude, vertical speed, ground speed, distance, heading, squawk, and **origin → destination** looked up from adsbdb, cached in NVS). **Double-tap** to cycle zoom range. Swipe between **Radar / List / Stats** (circular layouts).
+- **Boot splash** + **alert pings** (ES8311 speaker): a soft ping when a new aircraft enters range, an urgent double-beep for emergency/military — volume & mute on the web page.
 - **Smooth motion**: aircraft glyphs glide between polls (interpolated) instead of jumping, using cheap partial redraws.
-- **Top HUD**: WiFi status, in-range aircraft count, NTP/RTC clock, **battery %** (charging bolt, red when low), and the date.
+- **Top HUD**: WiFi status (amber if the data feed is failing), in-range aircraft count, NTP/RTC clock, **battery %** (charging bolt, red when low), and the date. The Stats view footer shows how to reach the config page (`capsuleradar.local` + IP).
 - **Battery aware** (AXP2101): shows charge level, warns when low, and slows the feed poll rate on battery to save power.
 - **Real-time clock** (PCF85063): keeps the time/date across power loss, so the clock is right even before/without WiFi; re-synced from NTP when online.
 - **Smart brightness**: night auto-dim (clock-based), idle auto-dim (no touch), and **face-down sleep** (QMI8658 IMU — flip it over to turn the screen off).
@@ -38,7 +48,7 @@ Makers can flash without installing anything using **ESP Web Tools** (Chrome or 
 1. Open the **[web flasher](https://socquique.github.io/capsule-radar/)** (the project's GitHub Pages site).
 2. Plug the board in with a USB-C **data** cable and click **Install**.
 
-The flasher is built and published automatically by GitHub Actions ([`.github/workflows/webflasher.yml`](.github/workflows/webflasher.yml)) on every push to `main` — enable it once in **Settings → Pages → Source = GitHub Actions**. To preview it locally:
+The flasher is built and published automatically by GitHub Actions ([`.github/workflows/webflasher.yml`](.github/workflows/webflasher.yml)) on every push to `main` — enable it once in **Settings → Pages → Source = GitHub Actions**. Tagged releases (`git tag v1.0.0 && git push origin v1.0.0`) also attach a ready-to-flash `CapsuleRadar-esp32s3.bin` to a **GitHub Release** via [`release.yml`](.github/workflows/release.yml). To preview the flasher locally:
 
 ```bash
 ./scripts/build_webflasher.sh                      # build + merge into web/flash/
