@@ -20,6 +20,15 @@ static void route_key(const char *callsign, char *out, size_t on) {
     out[j] = 0;
 }
 
+#define ROUTE_FMT_VER 2   // bump to invalidate cached routes when the label format changes
+
+void route_cache_begin() {
+    Preferences p;
+    if (!p.begin("routes", false)) return;
+    if (p.getUChar("__v", 0) != ROUTE_FMT_VER) { p.clear(); p.putUChar("__v", ROUTE_FMT_VER); }
+    p.end();
+}
+
 bool route_cache_get(const char *callsign, char *from, size_t fn, char *to, size_t tn) {
     if (fn) from[0] = 0;
     if (tn) to[0] = 0;
@@ -59,6 +68,24 @@ void route_cache_put(const char *callsign, const char *from, const char *to) {
     p.end();
 }
 
+// Most recognizable short airport label: a cleaned-up name ("Teesside", "Palma de
+// Mallorca", "London Heathrow"), falling back to the municipality, then the IATA code.
+static void pick_airport(JsonObjectConst ap, char *out, size_t n) {
+    String s = (const char *)(ap["name"] | "");
+    s.replace(" International Airport", "");
+    s.replace(" Regional Airport", "");
+    s.replace(" Airport", "");
+    s.replace(" International", "");
+    s.trim();
+    if (s.length() == 0 || s.length() > 18) {           // name missing or too long -> municipality/IATA
+        const char *muni = ap["municipality"] | "";
+        const char *iata = ap["iata_code"] | "";
+        snprintf(out, n, "%s", muni[0] ? muni : iata);
+        return;
+    }
+    snprintf(out, n, "%s", s.c_str());
+}
+
 bool route_fetch(const char *callsign, char *from, size_t fn, char *to, size_t tn) {
     if (fn) from[0] = 0;
     if (tn) to[0] = 0;
@@ -90,8 +117,10 @@ bool route_fetch(const char *callsign, char *from, size_t fn, char *to, size_t t
     JsonDocument filter;
     filter["response"]["flightroute"]["origin"]["municipality"] = true;
     filter["response"]["flightroute"]["origin"]["iata_code"] = true;
+    filter["response"]["flightroute"]["origin"]["name"] = true;
     filter["response"]["flightroute"]["destination"]["municipality"] = true;
     filter["response"]["flightroute"]["destination"]["iata_code"] = true;
+    filter["response"]["flightroute"]["destination"]["name"] = true;
 
     JsonDocument doc;
     DeserializationError err = deserializeJson(doc, http.getStream(),
@@ -102,11 +131,7 @@ bool route_fetch(const char *callsign, char *from, size_t fn, char *to, size_t t
     JsonObjectConst fr = doc["response"]["flightroute"].as<JsonObjectConst>();
     if (fr.isNull()) return false;   // "unknown callsign" etc.
 
-    const char *oCity = fr["origin"]["municipality"] | "";
-    const char *oIata = fr["origin"]["iata_code"] | "";
-    const char *dCity = fr["destination"]["municipality"] | "";
-    const char *dIata = fr["destination"]["iata_code"] | "";
-    snprintf(from, fn, "%s", oCity[0] ? oCity : oIata);
-    snprintf(to, tn, "%s", dCity[0] ? dCity : dIata);
+    pick_airport(fr["origin"].as<JsonObjectConst>(), from, fn);
+    pick_airport(fr["destination"].as<JsonObjectConst>(), to, tn);
     return (from[0] || to[0]);
 }
