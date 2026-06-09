@@ -9,6 +9,8 @@
 #include "adsb_client.h"
 #include "route.h"
 #include "route_client.h"
+#include "photo.h"
+#include "photo_client.h"
 #include "radar_view.h"
 #include "ui.h"
 #include "display.h"                  // M0: CO5300 + LVGL bring-up
@@ -110,6 +112,9 @@ static void adsb_task(void*) {
                     Serial.printf("[route] %s: no route\n", wantCall);
                 }
             }
+            // on-demand aircraft photo for the selected aircraft (fetched once per hex)
+            char wantHex[10];
+            if (photo_pending(wantHex, sizeof(wantHex))) photo_fetch(wantHex);
         }
         vTaskDelay(pdMS_TO_TICKS(250));
     }

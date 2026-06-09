@@ -44,14 +44,14 @@ bool AdsbClient::poll(std::vector<Aircraft>& out) {
 
     HTTPClient http;
     http.setReuse(false);
-    http.setConnectTimeout(4000);
-    http.setTimeout(8000);
-    if (!http.begin(client, url)) { _useFallback = !_useFallback; return false; }
+    http.setConnectTimeout(10000);   // tolerate slow / high-latency links (mobile hotspot)
+    http.setTimeout(15000);
+    if (!http.begin(client, url)) { Serial.printf("[adsb] begin failed (%s)\n", host); _useFallback = !_useFallback; return false; }
     http.addHeader("User-Agent", ADSB_USER_AGENT);
     http.addHeader("Accept", "application/json");
 
     const int code = http.GET();
-    if (code != 200) { http.end(); _useFallback = !_useFallback; return false; }
+    if (code != 200) { Serial.printf("[adsb] HTTP %d (%s)\n", code, host); http.end(); _useFallback = !_useFallback; return false; }
 
     // Only keep the fields we use -> much smaller parsed document.
     JsonDocument filter(&s_jsonPsram);

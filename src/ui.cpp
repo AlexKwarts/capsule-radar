@@ -3,6 +3,7 @@
 #include "ui.h"
 #include "radar_view.h"
 #include "route.h"
+#include "photo.h"
 #include "config.h"
 #include <lvgl.h>
 #include <stdio.h>
@@ -20,6 +21,7 @@ static lv_obj_t *s_tv = nullptr;
 static lv_obj_t *s_tileRadar = nullptr, *s_tileList = nullptr, *s_tileStats = nullptr;
 static lv_obj_t *s_card = nullptr, *s_cardTitle = nullptr, *s_cardL = nullptr, *s_cardR = nullptr;
 static lv_obj_t *s_cardRoute = nullptr;
+static lv_obj_t *s_photo = nullptr, *s_photoCredit = nullptr;   // aircraft photo above the card
 static char s_lastRouteReq[12] = "";
 static lv_obj_t *s_hudWifi = nullptr, *s_hudCount = nullptr, *s_hudClock = nullptr, *s_hudBatt = nullptr, *s_hudDate = nullptr;
 static lv_obj_t *s_list = nullptr;
@@ -31,6 +33,8 @@ static void refresh_card(void) {
     AcInfo in;
     if (!radar::selected(in)) {
         lv_obj_add_flag(s_card, LV_OBJ_FLAG_HIDDEN);
+        if (s_photo)       lv_obj_add_flag(s_photo, LV_OBJ_FLAG_HIDDEN);
+        if (s_photoCredit) lv_obj_add_flag(s_photoCredit, LV_OBJ_FLAG_HIDDEN);
         s_lastRouteReq[0] = 0;
         return;
     }
@@ -71,6 +75,29 @@ static void refresh_card(void) {
         lv_label_set_text(s_cardRoute, rt);
     } else {
         lv_label_set_text(s_cardRoute, "...");
+    }
+
+    // aircraft photo (planespotters), shown above the card when one is available
+    if (in.hex[0]) photo_request(in.hex);
+    int pw = 0, ph = 0; char pcred[40];
+    if (s_photo && in.hex[0] && photo_get(in.hex, &pw, &ph, pcred, sizeof(pcred)) && pw > 0 && ph > 0) {
+        int mw, mh;
+        lv_color_t *pbuf = photo_buffer(&mw, &mh);
+        lv_canvas_set_buffer(s_photo, pbuf, pw, ph, LV_IMG_CF_TRUE_COLOR);
+        lv_obj_set_size(s_photo, pw, ph);
+        lv_obj_align(s_photo, LV_ALIGN_CENTER, 0, -56 - ph / 2);
+        lv_obj_clear_flag(s_photo, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_invalidate(s_photo);
+        if (s_photoCredit) {
+            char c[52];
+            snprintf(c, sizeof(c), "Photo: %s", pcred[0] ? pcred : "planespotters.net");
+            lv_label_set_text(s_photoCredit, c);
+            lv_obj_align_to(s_photoCredit, s_photo, LV_ALIGN_OUT_BOTTOM_MID, 0, 1);
+            lv_obj_clear_flag(s_photoCredit, LV_OBJ_FLAG_HIDDEN);
+        }
+    } else if (s_photo) {
+        lv_obj_add_flag(s_photo, LV_OBJ_FLAG_HIDDEN);
+        if (s_photoCredit) lv_obj_add_flag(s_photoCredit, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -274,6 +301,21 @@ static void build_card(void) {
     lv_obj_set_style_text_font(s_cardRoute, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(s_cardRoute, UI_GREEN, 0);
     lv_obj_align(s_cardRoute, LV_ALIGN_TOP_LEFT, 0, 76);
+
+    // aircraft photo + credit, floating above the card (hidden until one loads)
+    s_photo = lv_canvas_create(s_tileRadar);
+    lv_obj_set_style_radius(s_photo, 6, 0);
+    lv_obj_set_style_clip_corner(s_photo, true, 0);
+    lv_obj_set_style_border_color(s_photo, UI_GREEN, 0);
+    lv_obj_set_style_border_opa(s_photo, 170, 0);
+    lv_obj_set_style_border_width(s_photo, 1, 0);
+    lv_obj_add_flag(s_photo, LV_OBJ_FLAG_HIDDEN);
+
+    s_photoCredit = lv_label_create(s_tileRadar);
+    lv_obj_set_style_text_font(s_photoCredit, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_color(s_photoCredit, UI_DIM, 0);
+    lv_label_set_text(s_photoCredit, "");
+    lv_obj_add_flag(s_photoCredit, LV_OBJ_FLAG_HIDDEN);
 }
 
 void ui_show_view(int idx) {
