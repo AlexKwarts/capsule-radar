@@ -14,7 +14,7 @@ struct RadarSettings {
 // Selectable visual skins.
 enum RadarTheme {
     THEME_PHOSPHOR = 0,   // green-on-black radar scope (the mockup look)
-    THEME_DRAGON   = 1,   // DBZ "Dragon Radar": green gradient, grid, yellow blips
+    THEME_ORB   = 1,   // Orb scope: green gradient, grid, yellow blips
     THEME_AMBER    = 2,   // amber CRT scope (warm monochrome chrome)
     THEME_MILITARY = 3,   // night-vision / military green scope
     THEME_COUNT    = 4
@@ -58,7 +58,7 @@ bool info(int idx, AcInfo& out);
 // Sweep self-animates via an internal timer; kept for API compatibility.
 void tickSweep();
 
-// Selectable visual skin (THEME_PHOSPHOR / THEME_DRAGON).
+// Selectable visual skin (THEME_PHOSPHOR / THEME_ORB).
 void setTheme(int theme);
 int  theme();
 void cycleTheme();

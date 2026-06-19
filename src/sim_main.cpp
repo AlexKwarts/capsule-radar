@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
             struct Shot { const char *name; int view; int theme; };
             const Shot shots[6] = {
                 { "radar",  0, THEME_PHOSPHOR },
-                { "dragon", 0, THEME_DRAGON   },
+                { "orb", 0, THEME_ORB   },
                 { "amber",  0, THEME_AMBER    },
                 { "military",0, THEME_MILITARY },
                 { "list",   1, THEME_PHOSPHOR },

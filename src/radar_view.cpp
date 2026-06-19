@@ -1,7 +1,7 @@
 // Radar scope (M1) + aircraft (M2) + selection (M3) + selectable themes (M4).
 // Pure LVGL, portable. Visual reference: assets/plane_radar_2.0_mockup.html
 //   THEME_PHOSPHOR : green-on-black radar scope (rings, sweep, altitude glyphs)
-//   THEME_DRAGON   : DBZ "Dragon Radar": green gradient, square grid, the 7 nearest
+//   THEME_ORB   : Orb scope: green gradient, square grid, the 7 nearest
 //                    aircraft as yellow balls (emitting waves) + off-range arrows.
 #include "radar_view.h"
 #include "config.h"
@@ -38,14 +38,14 @@
 #define COAST_COLOR lv_color_hex(0x4E86C6)
 // airport markers — a neutral muted grey-blue so they sit quietly under the traffic.
 #define AIRPORT_COLOR lv_color_hex(0x8A93A6)
-// ---- dragon palette (DBZ) ----
-#define DRG_BLIP   lv_color_hex(0xFFE11A)
-#define DRG_EMERG  lv_color_hex(0xFF4D2E)
-#define DRG_ACCENT lv_color_hex(0xFF8A1E)
-#define DRG_GRID   lv_color_hex(0x3F8B30)
-#define DRG_BG_TOP lv_color_hex(0x18540F)
-#define DRG_BG_BOT lv_color_hex(0x09250A)
-#define DRG_FLOW   lv_color_hex(0xFFC24D)
+// ---- orb palette (Orb) ----
+#define ORB_BLIP   lv_color_hex(0xFFE11A)
+#define ORB_EMERG  lv_color_hex(0xFF4D2E)
+#define ORB_ACCENT lv_color_hex(0xFF8A1E)
+#define ORB_GRID   lv_color_hex(0x3F8B30)
+#define ORB_BG_TOP lv_color_hex(0x18540F)
+#define ORB_BG_BOT lv_color_hex(0x09250A)
+#define ORB_FLOW   lv_color_hex(0xFFC24D)
 
 // ---- sweep config ----
 #define SWEEP_PERIOD_MS   8000
@@ -54,14 +54,14 @@
 #define SWEEP_TRAIL_STEPS 20
 #define SWEEP_TRAIL_OPA   72
 
-// ---- aircraft / flow / dragon config ----
+// ---- aircraft / flow / orb config ----
 #define TRAIL_MAX         7
 #define TAP_RADIUS_PX     40    // generous finger-tap catch radius (picks the nearest glyph within it)
 #define FLOW_MAX          700
 #define FLOW_REDRAW_EVERY 80
 #define FLOW_OPA          55
-#define DRAGON_BALLS      7
-#define DRAGON_ARROWS     8
+#define ORB_BLIPS      7
+#define ORB_ARROWS     8
 #define BALL_R            9
 #define WAVE_EXPAND       28.0f
 
@@ -124,7 +124,7 @@ static std::map<std::string, std::vector<lv_point_t>> s_trails;
 static const float GX[4] = { 0.0f,  7.0f, 0.0f, -7.0f };
 static const float GY[4] = { -11.0f, 5.0f, 8.0f, 5.0f };
 
-static inline bool dragon() { return s_theme == THEME_DRAGON; }
+static inline bool orb() { return s_theme == THEME_ORB; }
 
 static void show(lv_obj_t *o, bool v) {
     if (!o) return;
@@ -164,7 +164,7 @@ static void flow_draw_seg(const FlowSeg &s) {
     if (!s_flowCanvas) return;
     lv_draw_line_dsc_t d;
     lv_draw_line_dsc_init(&d);
-    d.color = dragon() ? DRG_FLOW : s_cRing;
+    d.color = orb() ? ORB_FLOW : s_cRing;
     d.width = 2;
     d.opa = FLOW_OPA;
     lv_point_t pts[2] = { s.a, s.b };
@@ -182,10 +182,10 @@ static void grid_draw_cb(lv_event_t *e) {
     lv_draw_ctx_t *d = lv_event_get_draw_ctx(e);
     const lv_point_t c = { s_cx, s_cy };
 
-    if (dragon()) {
+    if (orb()) {
         lv_draw_line_dsc_t gl;
         lv_draw_line_dsc_init(&gl);
-        gl.color = DRG_GRID;
+        gl.color = ORB_GRID;
         gl.width = 1;
         gl.opa = 120;
         const int step = 38;
@@ -203,7 +203,7 @@ static void grid_draw_cb(lv_event_t *e) {
                               rot_pt(-10, 8, 0, s_cx, s_cy) };
         lv_draw_rect_dsc_t td;
         lv_draw_rect_dsc_init(&td);
-        td.bg_color = DRG_ACCENT;
+        td.bg_color = ORB_ACCENT;
         td.bg_opa = LV_OPA_COVER;
         td.border_color = lv_color_hex(0x8A4A00);
         td.border_width = 1;
@@ -241,7 +241,7 @@ static void grid_draw_cb(lv_event_t *e) {
 
 // =============================== sweep =======================================
 static void sweep_draw_cb(lv_event_t *e) {
-    if (dragon()) return;
+    if (orb()) return;
     lv_draw_ctx_t *dctx = lv_event_get_draw_ctx(e);
     const lv_point_t center = { s_cx, s_cy };
     const float R = (float)RADAR_R_OUTER_PX;
@@ -290,7 +290,7 @@ static void wedge_bbox(float deg, lv_area_t *out) {
 // glyph + label bounding box (for partial invalidation during the glide)
 static inline lv_area_t glyph_bbox(lv_point_t p) {
     lv_area_t a;
-    if (dragon()) { a.x1 = p.x - 30; a.y1 = p.y - 30; a.x2 = p.x + 30;  a.y2 = p.y + 30; }
+    if (orb()) { a.x1 = p.x - 30; a.y1 = p.y - 30; a.x2 = p.x + 30;  a.y2 = p.y + 30; }
     else          { a.x1 = p.x - 22; a.y1 = p.y - 22; a.x2 = p.x + 148; a.y2 = p.y + 26; }
     return a;
 }
@@ -325,15 +325,15 @@ static void interp_step(void) {
 static void sweep_timer_cb(lv_timer_t *t) {
     (void)t;
     if (++s_frameCtr % 3 == 0) interp_step();         // smooth glyph motion (~90 ms cadence)
-    if (dragon()) {
-        // animate the dragon-ball waves (invalidate only the ball areas)
+    if (orb()) {
+        // animate the blip waves (invalidate only the ball areas)
         s_wavePhase += 0.05f;
         if (s_wavePhase >= 1.0f) s_wavePhase -= 1.0f;
         if (!s_acLayer) return;
         int balls = 0;
         for (const AcDraw &ac : s_acs) {
             if (!ac.inRange) continue;
-            if (balls >= DRAGON_BALLS) break;
+            if (balls >= ORB_BLIPS) break;
             balls++;
             lv_area_t a = { (lv_coord_t)(ac.pos.x - 44), (lv_coord_t)(ac.pos.y - 44),
                             (lv_coord_t)(ac.pos.x + 44), (lv_coord_t)(ac.pos.y + 44) };
@@ -375,7 +375,7 @@ static void draw_ball(lv_draw_ctx_t *d, const AcDraw &ac) {
     // emitted waves: several expanding rings (sonar-ping look)
     lv_draw_arc_dsc_t w;
     lv_draw_arc_dsc_init(&w);
-    w.color = DRG_ACCENT;
+    w.color = ORB_ACCENT;
     w.width = 3;
     for (int wv = 0; wv < 3; ++wv) {
         float ph = s_wavePhase + (float)wv * 0.34f;
@@ -387,7 +387,7 @@ static void draw_ball(lv_draw_ctx_t *d, const AcDraw &ac) {
     // the ball
     lv_draw_rect_dsc_t b;
     lv_draw_rect_dsc_init(&b);
-    b.bg_color = ac.emergency ? DRG_EMERG : DRG_BLIP;
+    b.bg_color = ac.emergency ? ORB_EMERG : ORB_BLIP;
     b.bg_opa = LV_OPA_COVER;
     b.radius = LV_RADIUS_CIRCLE;
     b.border_color = lv_color_hex(0x7A5A00);
@@ -412,7 +412,7 @@ static void draw_offrange(lv_draw_ctx_t *d, const AcDraw &ac) {
     // small ball at the rim
     lv_draw_rect_dsc_t b;
     lv_draw_rect_dsc_init(&b);
-    b.bg_color = ac.emergency ? DRG_EMERG : DRG_BLIP;
+    b.bg_color = ac.emergency ? ORB_EMERG : ORB_BLIP;
     b.bg_opa = LV_OPA_COVER;
     b.radius = LV_RADIUS_CIRCLE;
     lv_area_t r = { (lv_coord_t)(ac.pos.x - 5), (lv_coord_t)(ac.pos.y - 5),
@@ -427,25 +427,25 @@ static void draw_offrange(lv_draw_ctx_t *d, const AcDraw &ac) {
                           rot_pt(-5, 4, ac.bearingDeg, ox, oy) };
     lv_draw_rect_dsc_t td;
     lv_draw_rect_dsc_init(&td);
-    td.bg_color = DRG_ACCENT;
+    td.bg_color = ORB_ACCENT;
     td.bg_opa = LV_OPA_COVER;
     lv_draw_polygon(d, &td, tri, 3);
 }
 
 static void ac_draw_cb(lv_event_t *e) {
     lv_draw_ctx_t *d = lv_event_get_draw_ctx(e);
-    const bool drg = dragon();
+    const bool drg = orb();
     int balls = 0, arrows = 0;
 
     for (const AcDraw &ac : s_acs) {
         if (drg) {
             if (ac.inRange) {
-                if (balls >= DRAGON_BALLS) continue;   // up to 7 in-range balls
-                draw_trail(d, ac, DRG_FLOW);
+                if (balls >= ORB_BLIPS) continue;   // up to 7 in-range balls
+                draw_trail(d, ac, ORB_FLOW);
                 draw_ball(d, ac);
                 balls++;
             } else {
-                if (arrows >= DRAGON_ARROWS) continue;  // up to 8 off-range arrows
+                if (arrows >= ORB_ARROWS) continue;  // up to 8 off-range arrows
                 draw_offrange(d, ac);
                 arrows++;
             }
@@ -481,7 +481,7 @@ static void ac_draw_cb(lv_event_t *e) {
             sr.width = 2;
             sr.opa = 240;
             if (drg) {
-                sr.color = DRG_ACCENT;
+                sr.color = ORB_ACCENT;
                 lv_draw_arc(d, &sr, &ac.pos, 15, 0, 360);
                 lv_draw_arc(d, &sr, &ac.pos, 23, 0, 360);
             } else {
@@ -490,7 +490,7 @@ static void ac_draw_cb(lv_event_t *e) {
             }
         }
 
-        // floating labels (phosphor only; dragon keeps clean balls + the tap card)
+        // floating labels (phosphor only; orb keeps clean balls + the tap card)
         if (!drg) {
             lv_draw_label_dsc_t lc;
             lv_draw_label_dsc_init(&lc);
@@ -542,7 +542,7 @@ namespace radar {
 
 void setTheme(int t) {
     s_theme = ((t % THEME_COUNT) + THEME_COUNT) % THEME_COUNT;
-    const bool drg = dragon();
+    const bool drg = orb();
 
     switch (s_theme) {                          // pick the scope chrome palette
         case THEME_AMBER:
@@ -551,14 +551,14 @@ void setTheme(int t) {
         case THEME_MILITARY:
             s_cRing = lv_color_hex(0x49C46B); s_cLead = lv_color_hex(0x76E08C);
             s_cInk  = lv_color_hex(0xE0FFE6); s_cSoft = lv_color_hex(0x9FD7A8); break;
-        default:                                // phosphor (dragon uses its own colors)
+        default:                                // phosphor (orb uses its own colors)
             s_cRing = COL_GREEN; s_cLead = COL_LEAD; s_cInk = COL_INK; s_cSoft = COL_SOFT; break;
     }
 
     if (s_parent) {
         if (drg) {
-            lv_obj_set_style_bg_color(s_parent, DRG_BG_TOP, 0);
-            lv_obj_set_style_bg_grad_color(s_parent, DRG_BG_BOT, 0);
+            lv_obj_set_style_bg_color(s_parent, ORB_BG_TOP, 0);
+            lv_obj_set_style_bg_grad_color(s_parent, ORB_BG_BOT, 0);
             lv_obj_set_style_bg_grad_dir(s_parent, LV_GRAD_DIR_VER, 0);
         } else {
             lv_obj_set_style_bg_color(s_parent, lv_color_black(), 0);
@@ -566,9 +566,9 @@ void setTheme(int t) {
         }
         lv_obj_set_style_bg_opa(s_parent, LV_OPA_COVER, 0);
     }
-    for (int i = 0; i < 4; ++i) show(s_rose[i], !drg);   // hide compass in DBZ
+    for (int i = 0; i < 4; ++i) show(s_rose[i], !drg);   // hide compass in Orb
     show(s_rangeLbl, !drg && s_rangeLblVisible);
-    show(s_centerDot, !drg);                             // dragon draws an orange triangle instead
+    show(s_centerDot, !drg);                             // orb draws an orange triangle instead
     show(s_pulse, !drg);
 
     // retint the persistent chrome objects for the active palette
@@ -586,7 +586,7 @@ void setTheme(int t) {
 int  theme() { return s_theme; }
 void cycleTheme() { setTheme(s_theme + 1); }
 void setThemeChangedCb(void (*cb)(int)) { s_themeCb = cb; }
-void setRangeLabelVisible(bool v) { s_rangeLblVisible = v; if (s_rangeLbl) show(s_rangeLbl, v && !dragon()); }
+void setRangeLabelVisible(bool v) { s_rangeLblVisible = v; if (s_rangeLbl) show(s_rangeLbl, v && !orb()); }
 
 void setSweepEnabled(bool on) {
     s_sweepEnabled = on;
@@ -808,7 +808,7 @@ void update(const std::vector<Aircraft> &aircraft, const RadarSettings &s) {
         if (pruned) flow_redraw_all();
     }
 
-    // nearest first (the dragon balls + the list); cap to keep work bounded
+    // nearest first (the blips + the list); cap to keep work bounded
     std::sort(out.begin(), out.end(),
               [](const AcDraw &a, const AcDraw &b) { return a.distKm < b.distKm; });
     if (out.size() > 20) out.resize(20);
@@ -838,12 +838,12 @@ void update(const std::vector<Aircraft> &aircraft, const RadarSettings &s) {
 int hitTest(int x, int y) {
     int best = -1;
     long bestD = (long)TAP_RADIUS_PX * TAP_RADIUS_PX;
-    const bool drg = dragon();
+    const bool drg = orb();
     int balls = 0, arrows = 0;
     for (size_t i = 0; i < s_acs.size(); ++i) {
         if (drg) {
-            if (s_acs[i].inRange) { if (balls >= DRAGON_BALLS) continue; balls++; }
-            else { if (arrows >= DRAGON_ARROWS) continue; arrows++; }
+            if (s_acs[i].inRange) { if (balls >= ORB_BLIPS) continue; balls++; }
+            else { if (arrows >= ORB_ARROWS) continue; arrows++; }
         } else if (!s_acs[i].inRange) continue;
         const long dx = (long)s_acs[i].pos.x - x;
         const long dy = (long)s_acs[i].pos.y - y;

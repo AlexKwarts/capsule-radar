@@ -5,12 +5,11 @@ Fill the **`‹TODO›`** placeholders once the 3D enclosure is finished (photos
 profile, assembly). Suggested preview images live in `docs/img/` (the GIF + theme
 shots) until you have real photos of the printed unit.
 
-> ⚠️ **Trademark caution:** "Dragon Ball" / "Capsule Corp" / "Dragon Radar" are
-> trademarks. The DBZ-style theme is a **fan homage** — do **not** upload official
-> logos/artwork or use those trademarks in the title/marketing, or the model may be
-> taken down. The phosphor radar is the safe "hero" look for the listing; present the
-> green skin neutrally (e.g. "retro orb radar theme"). Consider whether even the name
-> "Capsule Radar" is too close for the listing title (a neutral title is safer).
+> ⚠️ **Trademark caution:** keep all naming and artwork neutral. The green-gradient
+> skin is the **"Orb"** theme — present it as a generic retro orb/sonar radar look, and
+> do **not** reference any anime/franchise or upload third-party logos/artwork in the
+> title, images or marketing, or the model may be taken down. The phosphor radar is the
+> safe "hero" look for the listing.
 
 ---
 
@@ -153,7 +152,7 @@ If you want max sharing with attribution, CC BY 4.0; avoid commercial-use licens
   the **cover image**; great call-outs (display, Wi-Fi app, USB-C/battery, tactile ring,
   beep alert, detailed flight view, interior shot).
 - `docs/img/radar.gif` — animated hero shot of the live scope.
-- `docs/img/radar.png`, `dragon.png`, `amber.png`, `military.png` — the four themes.
+- `docs/img/radar.png`, `orb.png`, `amber.png`, `military.png` — the four themes.
 - The **interior photo** (board + speaker in the shell) is perfect for the "what's
   inside / assembly" gallery.
 - ‹TODO› — a couple of plain desk photos of the real unit (lit screen) also help.

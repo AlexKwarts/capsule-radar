@@ -260,7 +260,7 @@ static void handleRoot() {
                  r, (r == (int)(g_settings.rangeKm + 0.5f)) ? " selected" : "", r * ufac, uname);
         ropts += o;
     }
-    const char *tnames[] = {"Phosphor", "Dragon (Capsule Corp)", "Amber CRT", "Military"};
+    const char *tnames[] = {"Phosphor", "Orb", "Amber CRT", "Military"};
     String topts;
     for (int i = 0; i < 4; ++i) {
         char o[80];

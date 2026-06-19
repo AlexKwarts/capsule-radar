@@ -1,14 +1,14 @@
 # Capsule Radar 🛩️
 
-A live **ADS-B aircraft radar** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75** — a round 466×466 AMOLED with capacitive touch. It pulls nearby aircraft from a free online feed over WiFi and plots them on a touch radar scope centered on your location, with live flight details and a selectable **Dragon Ball "Dragon Radar"** skin.
+A live **ADS-B aircraft radar** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75** — a round 466×466 AMOLED with capacitive touch. It pulls nearby aircraft from a free online feed over WiFi and plots them on a touch radar scope centered on your location, with live flight details and selectable visual skins.
 
 > Visual reference: open [`assets/plane_radar_2.0_mockup.html`](assets/plane_radar_2.0_mockup.html) in a browser.
 
 <p align="center"><img src="docs/img/radar.gif" width="360" alt="Capsule Radar live scope"></p>
 
-| Phosphor | Dragon (Capsule Corp) | Amber CRT | Military |
+| Phosphor | Orb | Amber CRT | Military |
 |:--:|:--:|:--:|:--:|
-| ![Phosphor](docs/img/radar.png) | ![Dragon](docs/img/dragon.png) | ![Amber](docs/img/amber.png) | ![Military](docs/img/military.png) |
+| ![Phosphor](docs/img/radar.png) | ![Orb](docs/img/orb.png) | ![Amber](docs/img/amber.png) | ![Military](docs/img/military.png) |
 
 <sub>Captured from the bundled desktop simulator (the device screen is round; the square corners are off-panel).</sub>
 
@@ -17,7 +17,7 @@ A live **ADS-B aircraft radar** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75**
 - **Live traffic** from [airplanes.live](https://airplanes.live) (free, non-commercial; fallback adsb.lol), updated every couple of seconds. Memory-safe streaming parser with a hard aircraft cap.
 - **Four themes** (long-press the screen to cycle, or pick on the web; remembered across reboots):
   - **Phosphor** — green-on-black radar scope: rings, animated sweep, aircraft glyphs rotated by heading and color-coded by altitude, fading trails, emergency halo.
-  - **Dragon** — DBZ Dragon Radar skin: green gradient + grid, the 7 nearest aircraft as yellow "dragon balls" emitting waves, off-range traffic as edge arrows pointing its way, orange target rings.
+  - **Orb** — green gradient + grid scope: the 7 nearest aircraft as yellow orbs emitting waves, off-range traffic as edge arrows pointing its way, orange target rings.
   - **Amber CRT** and **Military** — the same scope retinted (warm amber / night-vision green).
 - **Touch** (CST9217): tap an aircraft → detail card (callsign, type, altitude, vertical speed, ground speed, distance, heading, squawk, and **origin → destination** looked up from adsbdb, cached in NVS). **Double-tap** to cycle zoom range. Swipe between **Radar / List / Stats** (circular layouts).
 - **Boot splash** + **alert pings** (ES8311 speaker): a soft ping when a new aircraft enters range, an urgent double-beep for emergency/military — volume & mute on the web page.
