@@ -62,24 +62,26 @@ static String                g_tz = TZ_STR;                          // POSIX ti
 // Web-selectable time zones (label + POSIX TZ). The <option> value is the index; the save
 // handler maps it back to the POSIX string stored in NVS and used by configTzTime at boot.
 // (Index avoids putting POSIX strings with '<>' / ',' into HTML attributes.)
-static const struct { const char *label; const char *tz; } TZOPTS[] = {
-    {"UTC",                      "UTC0"},
-    {"London / Lisbon",          "GMT0BST,M3.5.0/1,M10.5.0"},
-    {"Madrid / Paris / Berlin",  "CET-1CEST,M3.5.0,M10.5.0/3"},
-    {"Athens / Helsinki",        "EET-2EEST,M3.5.0/3,M10.5.0/4"},
-    {"New York (US Eastern)",    "EST5EDT,M3.2.0,M11.1.0"},
-    {"Chicago (US Central)",     "CST6CDT,M3.2.0,M11.1.0"},
-    {"Denver (US Mountain)",     "MST7MDT,M3.2.0,M11.1.0"},
-    {"Phoenix (Arizona)",        "MST7"},
-    {"Los Angeles (US Pacific)", "PST8PDT,M3.2.0,M11.1.0"},
-    {"Anchorage (Alaska)",       "AKST9AKDT,M3.2.0,M11.1.0"},
-    {"Honolulu (Hawaii)",        "HST10"},
-    {"Argentina / Brazil (E)",   "<-03>3"},
-    {"India (IST)",              "<+0530>-5:30"},
-    {"China / Singapore",        "<+08>-8"},
-    {"Japan / Korea",            "JST-9"},
-    {"Sydney (AU Eastern)",      "AEST-10AEDT,M10.1.0,M4.1.0/3"},
-    {"Auckland (NZ)",            "NZST-12NZDT,M9.5.0,M4.1.0/3"},
+// offMin = standard (winter) UTC offset in minutes; dst = 1 if the zone observes DST.
+// The web page uses these to auto-pick the visitor's zone from their browser clock.
+static const struct { const char *label; const char *tz; int offMin; int dst; } TZOPTS[] = {
+    {"UTC",                      "UTC0",                              0, 0},
+    {"London / Lisbon",          "GMT0BST,M3.5.0/1,M10.5.0",          0, 1},
+    {"Madrid / Paris / Berlin",  "CET-1CEST,M3.5.0,M10.5.0/3",       60, 1},
+    {"Athens / Helsinki",        "EET-2EEST,M3.5.0/3,M10.5.0/4",     120, 1},
+    {"New York (US Eastern)",    "EST5EDT,M3.2.0,M11.1.0",          -300, 1},
+    {"Chicago (US Central)",     "CST6CDT,M3.2.0,M11.1.0",          -360, 1},
+    {"Denver (US Mountain)",     "MST7MDT,M3.2.0,M11.1.0",          -420, 1},
+    {"Phoenix (Arizona)",        "MST7",                            -420, 0},
+    {"Los Angeles (US Pacific)", "PST8PDT,M3.2.0,M11.1.0",          -480, 1},
+    {"Anchorage (Alaska)",       "AKST9AKDT,M3.2.0,M11.1.0",        -540, 1},
+    {"Honolulu (Hawaii)",        "HST10",                           -600, 0},
+    {"Argentina / Brazil (E)",   "<-03>3",                          -180, 0},
+    {"India (IST)",              "<+0530>-5:30",                     330, 0},
+    {"China / Singapore",        "<+08>-8",                          480, 0},
+    {"Japan / Korea",            "JST-9",                            540, 0},
+    {"Sydney (AU Eastern)",      "AEST-10AEDT,M10.1.0,M4.1.0/3",     600, 1},
+    {"Auckland (NZ)",            "NZST-12NZDT,M9.5.0,M4.1.0/3",      720, 1},
 };
 static const int TZOPTS_N = sizeof(TZOPTS) / sizeof(TZOPTS[0]);
 
@@ -348,9 +350,9 @@ static void handleRoot() {
     }
     String tzopts;   // time-zone dropdown (value = index into TZOPTS; mapped to POSIX TZ on save)
     for (int i = 0; i < TZOPTS_N; ++i) {
-        char o[96];
-        snprintf(o, sizeof(o), "<option value=%d%s>%s</option>",
-                 i, g_tz == TZOPTS[i].tz ? " selected" : "", TZOPTS[i].label);
+        char o[128];
+        snprintf(o, sizeof(o), "<option value=%d data-off=%d data-dst=%d%s>%s</option>",
+                 i, TZOPTS[i].offMin, TZOPTS[i].dst, g_tz == TZOPTS[i].tz ? " selected" : "", TZOPTS[i].label);
         tzopts += o;
     }
     String gpsRow;   // only on the -G variant: offer to auto-set the centre from GPS
@@ -445,13 +447,21 @@ static void handleRoot() {
         "function u(v){fetch('/units?v='+v+'&save=1')}"
         "function al(v){fetch('/alerts?mode='+v+'&save=1')}"
         "function px(v){fetch('/alerts?prox='+v+'&save=1')}"
-        "function gp(c){fetch('/gps?v='+(c?1:0)+'&save=1')}</script></body></html>",
+        "function gp(c){fetch('/gps?v='+(c?1:0)+'&save=1')}"
+        // auto-pick the visitor's time zone from their browser clock (only if they haven't set one)
+        "var TZSET=%d;(function(){if(TZSET)return;"
+        "var d=new Date(),j=new Date(d.getFullYear(),0,1).getTimezoneOffset(),"
+        "u=new Date(d.getFullYear(),6,1).getTimezoneOffset(),o=-Math.max(j,u),s=(j!=u)?1:0,"
+        "e=document.querySelector('select[name=tz]'),b=-1,i;"
+        "for(i=0;i<e.options.length;i++){if(+e.options[i].dataset.off===o&&+e.options[i].dataset.dst===s){b=i;break;}}"
+        "if(b<0)for(i=0;i<e.options.length;i++){if(+e.options[i].dataset.off===o){b=i;break;}}"
+        "if(b>=0)e.selectedIndex=b;})();</script></body></html>",
         g_settings.homeLat, g_settings.homeLon, gpsRow.c_str(), ropts.c_str(), topts.c_str(),
         tzopts.c_str(),
         g_brightnessDay, iopts.c_str(), g_showSweep ? "checked" : "",
         g_showAirports ? "checked" : "", tlopts.c_str(), rotopts.c_str(), uopts.c_str(),
         g_volume, g_muted ? "checked" : "", aopts.c_str(), popts.c_str(),
-        g_settings.homeLat, g_settings.homeLon);
+        g_settings.homeLat, g_settings.homeLon, (g_tz == TZ_STR ? 0 : 1));
     g_web.send(200, "text/html", buf);
 }
 
