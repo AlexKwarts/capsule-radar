@@ -36,7 +36,8 @@ A live **ADS-B aircraft radar** for the **Waveshare ESP32-S3-Touch-AMOLED-1.75**
 - **Battery aware** (AXP2101): shows charge level, warns when low, and slows the feed poll rate on battery to save power.
 - **Real-time clock** (PCF85063): keeps the time/date across power loss, so the clock is right even before/without WiFi; re-synced from NTP when online.
 - **Smart brightness**: configurable idle auto-dim (no touch), and **face-down sleep** (QMI8658 IMU — flip it over to turn the screen off).
-- **Configuration web page** at `http://capsuleradar.local/` — center point, display range, theme, live brightness slider, WiFi reset. Settings persist in NVS.
+- **GPS auto-location** (optional **-G** board variant): the Waveshare `-G` board has an onboard GPS (Quectel LC76G). Turn it on from the web page and the radar **sets its own center point automatically**, with an on-screen **satellite status icon** (amber while acquiring, green once it has a fix). Standard boards simply enter their location manually.
+- **Configuration web page** at `http://capsuleradar.local/` — center point (map picker), display range, theme, **time zone** (auto-detected from your browser), live brightness slider, sound, WiFi reset, and over-the-air firmware update. Settings persist in NVS.
 - **First-boot WiFi setup** via a captive portal (`CapsuleRadar-Setup`).
 
 ## Hardware
