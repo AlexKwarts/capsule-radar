@@ -508,13 +508,20 @@ static void handleSave() {
     ESP.restart();
 }
 
+// Forgets the saved WiFi network and reboots into the "CapsuleRadar-Setup" captive
+// portal. Shared by the /wifi web endpoint and the physical reset switch (PIN_WIFI_RESET_BUTTON).
+static void wifiResetAndReboot() {
+    Serial.println("[wifi] resetting saved WiFi credentials -> rebooting into captive portal");
+    g_wm.resetSettings();
+    ESP.restart();
+}
+
 static void handleWifi() {
     g_web.send(200, "text/html",
         "<body style='background:#06100a;color:#ffb23c;font-family:sans-serif;padding:24px'>"
         "WiFi reset. Connect to the <b>CapsuleRadar-Setup</b> network to reconfigure.</body>");
     delay(400);
-    g_wm.resetSettings();
-    ESP.restart();
+    wifiResetAndReboot();
 }
 
 static void handleBright() {
@@ -737,6 +744,9 @@ void setup() {
     delay(200);
     Serial.println("\nCapsule Radar boot");
 
+    // Manual WiFi reset switch (GPIO -> GND, internal pull-up, active LOW). See config.h.
+    pinMode(PIN_WIFI_RESET_BUTTON, INPUT_PULLUP);
+
     if (PIN_LCD_SCLK < 0 || PIN_I2C_SDA < 0) {
         Serial.println("[!] Pins in config.h are still -1. Copy them from the Waveshare demo.");
     }
@@ -869,6 +879,25 @@ void loop() {
 
     // scheduled reboot after a fresh WiFi config (see setSaveConfigCallback)
     if (g_rebootAtMs && (int32_t)(millis() - g_rebootAtMs) >= 0) { delay(50); ESP.restart(); }
+
+    // Manual WiFi reset switch: hold for WIFI_RESET_HOLD_MS to forget WiFi and reboot into
+    // the captive portal. Needed because a battery keeps the board powered when USB is
+    // unplugged, so the normal boot-time "no network -> AP" fallback never re-triggers.
+    {
+        static uint32_t pressStartMs = 0;
+        static bool     fired = false;
+        if (digitalRead(PIN_WIFI_RESET_BUTTON) == LOW) {
+            if (pressStartMs == 0) {
+                pressStartMs = millis();
+            } else if (!fired && millis() - pressStartMs >= WIFI_RESET_HOLD_MS) {
+                fired = true;
+                wifiResetAndReboot();   // does not return (ESP.restart())
+            }
+        } else {
+            pressStartMs = 0;
+            fired = false;
+        }
+    }
 
     // OTA: set up once WiFi is up, then service it every loop (flash over the air)
     static bool otaUp = false;

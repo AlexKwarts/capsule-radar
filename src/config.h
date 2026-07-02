@@ -73,6 +73,8 @@ static const float RANGE_STEPS_KM[] = {10.0f, 20.0f, 30.0f, 50.0f, 100.0f};
 #define PIN_I2S_DIN         10             // codec -> ESP32 (mics)
 #define PIN_AUDIO_PA        46             // speaker amp enable
 #define PIN_BOOT_BUTTON     0              // BOOT button (held on boot = captive portal, later)
+#define PIN_WIFI_RESET_BUTTON 16
+#define WIFI_RESET_HOLD_MS  3000
 
 // I2C addresses:
 #define I2C_ADDR_TOUCH      0x5A           // CST9217 (corrected from vendor driver; was 0x15)
